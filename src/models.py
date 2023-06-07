@@ -1,6 +1,6 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, Date
+from sqlalchemy import create_engine, Column, Integer, String, Float, Date, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker, scoped_session, relationship
 import bcrypt
 
 engine = create_engine('sqlite:///budget_tracker.db')
@@ -19,7 +19,8 @@ class User(Base):
     def __init__(self, username, password, email=None, is_login=False):
         self.username = username
         self.password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        
+        transactions = relationship("Transaction", back_populates="user")
+
         if is_login:
             self.email = None
         else:
@@ -79,7 +80,8 @@ class Budget(Base):
     id = Column(Integer, primary_key=True)
     category = Column(String)
     amount = Column(Float)
-    user_id = Column(Integer)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    user = relationship("User", back_populates="budgets")
 
     def save(self):
         """Save the budget to the database."""
@@ -127,6 +129,8 @@ class Transaction(Base):
     category = Column(String(50))
     amount = Column(Float)
     date = Column(Date)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    user = relationship("User", back_populates="transactions")
 
     def __init__(self, transaction_type, category, amount, date):
         self.transaction_type = transaction_type
