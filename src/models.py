@@ -15,6 +15,10 @@ class User(Base):
     username = Column(String)
     password_hash = Column(String)
     email = Column(String)
+    
+    transactions = relationship("Transaction", back_populates="user")
+    
+    budgets = relationship("Budget", back_populates="user")
 
     def __init__(self, username, password, email=None, is_login=False):
         self.username = username
@@ -82,6 +86,8 @@ class Budget(Base):
     amount = Column(Float)
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship("User", back_populates="budgets")
+    
+    user = relationship("User", back_populates="budgets")
 
     def save(self):
         """Save the budget to the database."""
@@ -130,13 +136,15 @@ class Transaction(Base):
     amount = Column(Float)
     date = Column(Date)
     user_id = Column(Integer, ForeignKey('users.id'))
+    
     user = relationship("User", back_populates="transactions")
 
-    def __init__(self, transaction_type, category, amount, date):
+    def __init__(self, transaction_type, category, amount, date,user_id):
         self.transaction_type = transaction_type
         self.category = category
         self.amount = amount
         self.date = date
+        self.user_id = user_id
 
     def save(self):
         """Save the transaction to the database."""

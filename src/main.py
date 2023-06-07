@@ -1,10 +1,9 @@
 import click
-from database import create_tables
-from models import User, Transaction, Budget, create_tables
-from utils import clear_screen
-import matplotlib.pyplot as plt
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+from models import User, Transaction, Budget
+from utils import clear_screen
+import matplotlib.pyplot as plt
 import datetime
 
 # Global variable to track the authenticated user
@@ -32,25 +31,33 @@ def delete_transaction():
 
 @click.command()
 @click.option("--user-id", type=int, help="User ID for generating the report")
-def generate_report(user_id):
+def generate_report(user_id=None):
     """Generate a report of transactions for a specific user."""
     if authenticated_user is None:
         click.echo("Please login first.")
         return
 
-    if user_id != authenticated_user.id:
+    if user_id is not None and user_id != authenticated_user.id:
         click.echo("You are not authorized to access this report.")
         return
 
     session = Session()
-    transactions = session.query(Transaction).filter_by(user_id=user_id).all()
+    if user_id is None:
+        transactions = session.query(Transaction).filter_by(user_id=authenticated_user.id).all()
+        click.echo(f"Report for User ID: {authenticated_user.id}")
+    else:
+        transactions = session.query(Transaction).filter_by(user_id=user_id).all()
+        click.echo(f"Report for User ID: {user_id}")
     session.close()
 
-    click.echo(f"Report for User ID: {user_id}")
+    if not transactions:
+        click.echo("No transactions found.")
+        return
+
     click.echo("Transactions:")
     for transaction in transactions:
         click.echo(f"ID: {transaction.id}")
-        click.echo(f"Type: {transaction.type}")
+        click.echo(f"Type: {transaction.transaction_type}")
         click.echo(f"Category: {transaction.category}")
         click.echo(f"Amount: {transaction.amount}")
         click.echo(f"Date: {transaction.date}")
@@ -100,6 +107,7 @@ def login():
     click.echo("Login successful.")
     show_user_menu()  # Show the user menu directly after successful login
 
+
 # Rest of the code remains the same
 
 def print_menu():
@@ -130,7 +138,7 @@ def show_user_menu():
         elif choice == "3":
             delete_transaction()
         elif choice == "4":
-            generate_report(authenticated_user.id)
+            generate_report()
         elif choice == "5":
             logout()
             break  # Exit the user menu and return to the main menu
@@ -163,7 +171,7 @@ def add_transaction():
     date_str = click.prompt("Date (YYYY-MM-DD): ")
     date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
 
-    transaction = Transaction(type=transaction_type, category=category, amount=amount, date=date, user_id=authenticated_user.id)
+    transaction = Transaction(transaction_type=transaction_type, category=category, amount=amount, date=date, user_id=authenticated_user.id)
     session = Session()
     session.add(transaction)
     session.commit()
@@ -187,7 +195,7 @@ def view_transactions():
 
     for transaction in transactions:
         click.echo(f"ID: {transaction.id}")
-        click.echo(f"Type: {transaction.type}")
+        click.echo(f"Type: {transaction.transaction_type}")
         click.echo(f"Category: {transaction.category}")
         click.echo(f"Amount: {transaction.amount}")
         click.echo(f"Date: {transaction.date}")
@@ -205,7 +213,6 @@ def plot_transaction_amounts(transactions):
     plt.show()
 
 def main():
-    create_tables()
     clear_screen()
 
     while True:
