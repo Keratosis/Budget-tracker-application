@@ -76,8 +76,7 @@ def print_menu():
     click.echo(click.style("2. Login", fg="cyan"))
 
 def print_user_menu():
-#    click.echo(click.style(f"Welcome, {authenticated_user.username}! 😄", fg="cyan", bold=True))
-    click.echo(click.style(f"Welcome, {authenticated_user.username}!", fg="cyan", bold=True))
+    click.echo(click.style(f"Welcome, {authenticated_user.username}! 😄", fg="cyan", bold=True))
     session = Session()
     total_income = session.query(func.sum(Transaction.amount)).filter_by(user_id=authenticated_user.id, transaction_type='income').scalar() or 0
     total_expenses = session.query(func.sum(Transaction.amount)).filter_by(user_id=authenticated_user.id, transaction_type='expense').scalar() or 0
@@ -90,9 +89,10 @@ def print_user_menu():
     click.echo(click.style("3. Delete a transaction", fg="bright_magenta"))
     click.echo(click.style("4. Set budget", fg="bright_magenta"))
     click.echo(click.style("5. View all budgets", fg="bright_magenta"))
-    click.echo(click.style("6. Generate report", fg="bright_magenta"))
-    click.echo(click.style("7. Logout", fg="bright_magenta"))
-    click.echo(click.style("8. Exit", fg="bright_magenta"))
+    click.echo(click.style("6. Delete budget", fg="bright_magenta"))
+    click.echo(click.style("7. Generate report", fg="bright_magenta"))
+    click.echo(click.style("8. Logout", fg="bright_magenta"))
+    click.echo(click.style("9. Exit", fg="bright_magenta"))
 
 def show_user_menu():
     
@@ -111,11 +111,14 @@ def show_user_menu():
         elif choice == "5":
             view_budget()
         elif choice == "6":
-            generate_report()
+             delete_budget()
         elif choice == "7":
+            generate_report()
+        
+        elif choice == "8":
             logout()
             break  # Exit the user menu and return to the main menu
-        elif choice == "8":
+        elif choice == "9":
             exit_program()
         else:
             
@@ -236,6 +239,36 @@ def view_budget():
         click.echo(click.style("No budgets found.", fg="cyan"))
 
     session.close()
+
+def delete_budget():
+    """Delete a budget."""
+    session = Session()
+    budgets = session.query(Budget).filter_by(user_id=authenticated_user.id).all()
+
+    if not budgets:
+        click.echo(click.style("No budgets found.", fg="yellow"))
+        session.close()
+        show_user_menu()
+        return
+    click.echo("Available budgets:")
+    for budget in budgets:
+        click.echo(f"Budget ID: {budget.id} | Category: {budget.category} | Amount: {budget.amount}")
+
+    budget_id = click.prompt(click.style("Enter the ID of the budget you want to delete", fg="cyan"))
+
+    budget = session.query(Budget).filter_by(id=budget_id).first()
+    if budget is None:
+        click.echo(click.style("Budget not found.", fg="red"))
+        session.close()
+        show_user_menu()
+        return
+
+    session.delete(budget)
+    session.commit()
+    session.close()
+
+    click.echo(click.style("Budget deleted successfully.", fg="green"))
+    show_user_menu()
 
     
 @click.option("--user-id", type=int, help="User ID for generating the report")
