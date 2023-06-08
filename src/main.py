@@ -17,6 +17,8 @@ Session = sessionmaker(bind=create_engine("sqlite:///budget_tracker.db"))
 @click.command()
 def register_user():
     """User registration functionality."""
+    click.echo(click.style("User Registration", fg="cyan", bold=True))
+    click.echo("------------------")
     username = click.prompt("Enter your username")
     password = getpass("Enter your password")
     email = click.prompt("Enter your email")
@@ -41,6 +43,8 @@ def register_user():
 @click.command()
 def login():
     """Login functionality."""
+    click.echo(click.style("User Login", fg="cyan", bold=True))
+    click.echo("-----------")
     username = click.prompt("Enter your username")
     password = click.prompt("Enter your password")
 
@@ -63,13 +67,17 @@ def login():
 #user and login interface
 
 def print_menu():
-    print("Budget Tracker CLI")
-    print("-------------------")
+    clear_screen()
+    click.echo(click.style("Budget Tracker CLI", fg="cyan", bold=True))
+    click.echo("------------------")
     print("1. Register")
     print("2. Login")
 
 
 def print_user_menu():
+    clear_screen()
+    click.echo(click.style(f"Welcome, {authenticated_user.username}!", fg="cyan", bold=True))
+    click.echo("-----------------------------")
     print("1. Add a transaction")
     print("2. View all transactions")
     print("3. Delete a transaction")
@@ -212,7 +220,6 @@ def generate_report(user_id=None):
         click.echo(f"Date: {transaction.date}")
         click.echo("------------------------")
 
-
 @click.command()
 def set_budget():
     """Set the budget for the authenticated user."""
@@ -221,17 +228,18 @@ def set_budget():
         return
 
     click.echo("Set Budget:")
+    category = click.prompt("Enter the budget category: ")
     amount_str = click.prompt("Enter the budget amount: ")
     amount = float(amount_str.replace(",", ""))
 
     session = Session()
-    existing_budget = session.query(Budget).filter_by(user_id=authenticated_user.id).first()
+    existing_budget = session.query(Budget).filter_by(user_id=authenticated_user.id, category=category).first()
 
     if existing_budget:
         existing_budget.amount = amount
         click.echo("Budget updated successfully.")
     else:
-        new_budget = Budget(user_id=authenticated_user.id, amount=amount)
+        new_budget = Budget(user_id=authenticated_user.id, category=category, amount=amount)
         session.add(new_budget)
         click.echo("Budget set successfully.")
 
