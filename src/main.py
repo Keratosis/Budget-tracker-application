@@ -1,4 +1,5 @@
 import click
+from getpass import getpass
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from models import User, Transaction, Budget
@@ -67,7 +68,7 @@ def generate_report(user_id=None):
 def register_user():
     """User registration functionality."""
     username = click.prompt("Enter your username")
-    password = click.prompt("Enter your password")
+    password = getpass("Enter your password")
     email = click.prompt("Enter your email")
 
     session = Session()
@@ -84,7 +85,7 @@ def register_user():
     session.close()
 
     click.echo("Registration successful.")
-    show_user_menu()  # Redirect to the user menu after successful registration
+    login()  # Redirect to the login functionality after successful registration
 
 @click.command()
 def login():
@@ -224,12 +225,11 @@ def main():
             break  # Exit the main loop after successful registration
         elif choice == "2":
             login()
+            if authenticated_user is not None:
+                show_user_menu()  # Show the user menu if login is successful
             break  # Exit the main loop after successful login
         else:
             click.echo("Invalid choice. Please try again.")
-
-    if authenticated_user is not None:
-        show_user_menu()
 
 if __name__ == "__main__":
     main()
