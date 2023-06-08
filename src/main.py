@@ -52,10 +52,12 @@ def login():
 
     if user is None:
         click.echo(click.style("User not found. Please register first.", fg="red"))
+        main()
         return
 
     if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
         click.echo(click.style("Incorrect password. Please try again.", fg="red"))
+        main()
         return 
 
     # Store the authenticated user's information in the session or as a global variable
@@ -75,6 +77,7 @@ def print_menu():
     click.echo(click.style("2. Login", fg="cyan"))
 
 def print_user_menu():
+#    click.echo(click.style(f"Welcome, {authenticated_user.username}! 😄", fg="cyan", bold=True))
     click.echo(click.style(f"Welcome, {authenticated_user.username}!", fg="cyan", bold=True))
     session = Session()
     total_income = session.query(func.sum(Transaction.amount)).filter_by(user_id=authenticated_user.id, transaction_type='income').scalar() or 0
@@ -93,8 +96,7 @@ def print_user_menu():
     click.echo(click.style("8. Exit", fg="bright_magenta"))
 
 def show_user_menu():
-    clear_screen()
-
+    
     while True:
         print_user_menu()
         choice = click.prompt(click.style("Enter your choice (1-8): ", fg="yellow"))
@@ -128,20 +130,25 @@ def add_transaction():
         return
     
     click.echo(click.style("Add a new transaction:", fg="cyan"))
-    transaction_type = click.prompt(click.style("Type (income/expense): ", fg="cyan"))
-    category = click.prompt(click.style("Category: ", fg="cyan"))
-    amount_str = click.prompt(click.style("Amount: ", fg="cyan"))
-    amount = float(amount_str.replace(",", ""))
-    date_str = click.prompt(click.style("Date (YYYY-MM-DD): ", fg="cyan"))
-    date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    try:
+        transaction_type = click.prompt(click.style("Type (income/expense): ", fg="cyan"))
+        category = click.prompt(click.style("Category: ", fg="cyan"))
+        amount_str = click.prompt(click.style("Amount: ", fg="cyan"))
+        amount = float(amount_str.replace(",", ""))
+        date_str = click.prompt(click.style("Date (YYYY-MM-DD): ", fg="cyan"))
+        date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
 
-    transaction = Transaction(transaction_type=transaction_type, category=category, amount=amount, date=date, user_id=authenticated_user.id)
-    session = Session()
-    session.add(transaction)
-    session.commit()
-    session.close()
+        transaction = Transaction(transaction_type=transaction_type, category=category, amount=amount, date=date, user_id=authenticated_user.id)
+        session = Session()
+        session.add(transaction)
+        session.commit()
+        session.close()
 
-    click.echo(click.style("Transaction added successfully!", fg="green"))
+        click.echo("Transaction added successfully!")
+    except ValueError:
+        click.echo(click.style("Invalid input format. Please try again.", fg="red"))
+
+    show_user_menu()
 
 def view_transactions():
     if authenticated_user is None:
@@ -181,11 +188,12 @@ def delete_transaction():
     if transaction:
         session.delete(transaction)
         session.commit()
-        transaction_id = click.prompt(click.style("Enter the transaction ID", fg="cyan"))
+        click.echo(click.style("Transaction deleted successfully.", fg="green"))
     else:
         click.echo(click.style("Transaction not found.", fg="red"))
-        
+
     session.close()
+
 
 def set_budget():
     """Set the budget for the authenticated user."""
@@ -215,7 +223,7 @@ def set_budget():
 def view_budget():
     """View the budget for the authenticated user."""
     if authenticated_user is None:
-        click.echo(click.style("Budget set successfully.", fg="green"))
+        click.echo(click.style("Please login first.", fg="red"))
         return
 
     session = Session()
@@ -224,11 +232,12 @@ def view_budget():
     if budgets:
         click.echo(click.style("Budgets:", fg="cyan"))
         for budget in budgets:
-           click.echo(click.style(f"Category: {budget.category}, Amount: {budget.amount}", fg="cyan"))
+            click.echo(click.style(f"ID: {budget.id}, Category: {budget.category}, Amount: {budget.amount}", fg="cyan"))
     else:
-        click.echo(click.style(f"Category: {budget.category}, Amount: {budget.amount}", fg="cyan"))
+        click.echo(click.style("No budgets found.", fg="cyan"))
 
     session.close()
+
     
 @click.option("--user-id", type=int, help="User ID for generating the report")
 def generate_report(user_id=None):
@@ -257,7 +266,7 @@ def generate_report(user_id=None):
         return
 
     if transactions:
-        click.echo("Transactions:")
+        click.echo(click.style("Transactions:", fg="cyan"))
         for transaction in transactions:
             click.echo(f"ID: {transaction.id}")
             click.echo(f"Type: {transaction.transaction_type}")
@@ -269,7 +278,7 @@ def generate_report(user_id=None):
         click.echo("No transactions found.")
 
     if budgets:
-        click.echo("Budgets:")
+        click.echo(click.style("Budgets:", fg="cyan"))
         for budget in budgets:
             click.echo(f"ID: {budget.id}")
             click.echo(f"Category: {budget.category}")
