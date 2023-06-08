@@ -3,8 +3,6 @@ from getpass import getpass
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine,func
 from models import User, Transaction, Budget
-from utils import clear_screen
-import matplotlib.pyplot as plt
 import datetime
 import bcrypt
 
