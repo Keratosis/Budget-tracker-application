@@ -8,6 +8,8 @@ Base = declarative_base()
 Session = scoped_session(sessionmaker(bind=engine))
 
 
+
+
 class User(Base):
     __tablename__ = 'users'
 
@@ -15,15 +17,13 @@ class User(Base):
     username = Column(String)
     password_hash = Column(String)
     email = Column(String)
-    
+
     transactions = relationship("Transaction", back_populates="user")
-    
     budgets = relationship("Budget", back_populates="user")
 
-    def __init__(self, username, password, email=None, is_login=False):
+    def __init__(self, username, password_hash, email=None, is_login=False):
         self.username = username
-        self.password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        transactions = relationship("Transaction", back_populates="user")
+        self.password_hash = password_hash
 
         if is_login:
             self.email = None

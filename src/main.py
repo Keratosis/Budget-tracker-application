@@ -37,7 +37,7 @@ def register_user():
     session.close()
 
     click.echo(click.style("Registration successful.", fg="green"))
-    login()  # Redirect to the login functionality after successful registration
+    main()  # Redirect to the login functionality after successful registration
 
 
 @click.command()
@@ -48,17 +48,18 @@ def login():
 
     session = Session()
     user = session.query(User).filter_by(username=username).first()
-    session.close()
 
     if user is None:
         click.echo(click.style("User not found. Please register first.", fg="red"))
+        session.close()
         main()
         return
 
     if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
         click.echo(click.style("Incorrect password. Please try again.", fg="red"))
+        session.close()
         main()
-        return 
+        return
 
     # Store the authenticated user's information in the session or as a global variable
     global authenticated_user
