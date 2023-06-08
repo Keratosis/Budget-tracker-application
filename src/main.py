@@ -12,6 +12,152 @@ authenticated_user = None
 
 Session = sessionmaker(bind=create_engine("sqlite:///budget_tracker.db"))
 
+  
+
+@click.command()
+def register_user():
+    """User registration functionality."""
+    username = click.prompt("Enter your username")
+    password = getpass("Enter your password")
+    email = click.prompt("Enter your email")
+
+    session = Session()
+    existing_user = session.query(User).filter_by(username=username).first()
+
+    if existing_user is not None:
+        click.echo("Username already exists. Please log in or choose a different username.")
+        session.close()
+        return
+
+    new_user = User(username=username, password=password, email=email)
+    session.add(new_user)
+    session.commit()
+    session.close()
+
+    click.echo("Registration successful.")
+    login()  # Redirect to the login functionality after successful registration
+
+
+@click.command()
+def login():
+    """Login functionality."""
+    username = click.prompt("Enter your username")
+    password = click.prompt("Enter your password")
+
+    session = Session()
+    user = session.query(User).filter_by(username=username).first()
+    session.close()
+
+    if user is None:
+        click.echo("User not found. Please register first.")
+        return
+
+    # Store the authenticated user's information in the session or as a global variable
+    global authenticated_user
+    authenticated_user = user
+
+    click.echo("Login successful.")
+    show_user_menu()  # Show the user menu directly after successful login
+
+
+#user and login interface
+
+def print_menu():
+    print("Budget Tracker CLI")
+    print("-------------------")
+    print("1. Register")
+    print("2. Login")
+
+
+def print_user_menu():
+    print("1. Add a transaction")
+    print("2. View all transactions")
+    print("3. Delete a transaction")
+    print("4. Generate report")
+    print("5. Set budget")
+    print("6. Logout")
+    print("7. Exit")
+
+
+def show_user_menu():
+    clear_screen()
+
+    while True:
+        print_user_menu()
+        choice = click.prompt("Enter your choice (1-7): ")
+
+        if choice == "1":
+            add_transaction()
+        elif choice == "2":
+            view_transactions()
+        elif choice == "3":
+            delete_transaction()
+        elif choice == "4":
+            generate_report()
+        elif choice == "5":
+            set_budget()
+        elif choice == "6":
+            logout()
+            break  # Exit the user menu and return to the main menu
+        elif choice == "7":
+            exit_program()
+        else:
+            click.echo("Invalid choice. Please try again.")
+
+
+def add_transaction():
+    if authenticated_user is None:
+        click.echo("Please login first.")
+        return
+
+    click.echo("Add a new transaction:")
+    transaction_type = click.prompt("Type (income/expense): ")
+    category = click.prompt("Category: ")
+    amount_str = click.prompt("Amount: ")
+    amount = float(amount_str.replace(",", ""))
+    date_str = click.prompt("Date (YYYY-MM-DD): ")
+    date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+
+    transaction = Transaction(
+        transaction_type=transaction_type,
+        category=category,
+        amount=amount,
+        date=date,
+        user_id=authenticated_user.id,
+    )
+    session = Session()
+    session.add(transaction)
+    session.commit()
+    session.close()
+
+    click.echo("Transaction added successfully!")
+
+
+def view_transactions():
+    if authenticated_user is None:
+        click.echo("Please login first.")
+        return
+
+    click.echo(" ********************* ")
+    click.echo("  *********************    ")
+    click.echo("Viewing all transactions:")
+    session = Session()
+    transactions = session.query(Transaction).filter_by(user_id=authenticated_user.id).all()
+    session.close()
+
+    if not transactions:
+        click.echo("No transactions found.")
+        return
+
+    for transaction in transactions:
+        click.echo(f"ID: {transaction.id}")
+        click.echo(f"Type: {transaction.transaction_type}")
+        click.echo(f"Category: {transaction.category}")
+        click.echo(f"Amount: {transaction.amount}")
+        click.echo(f"Date: {transaction.date}")
+        click.echo("------------------------")
+
+
 @click.command()
 def delete_transaction():
     """Delete a transaction from the database."""
@@ -28,7 +174,9 @@ def delete_transaction():
         click.echo("Transaction deleted successfully.")
     else:
         click.echo("Transaction not found.")
+
     session.close()
+
 
 @click.command()
 @click.option("--user-id", type=int, help="User ID for generating the report")
@@ -64,89 +212,32 @@ def generate_report(user_id=None):
         click.echo(f"Date: {transaction.date}")
         click.echo("------------------------")
 
+
 @click.command()
-def register_user():
-    """User registration functionality."""
-    username = click.prompt("Enter your username")
-    password = getpass("Enter your password")
-    email = click.prompt("Enter your email")
-
-    session = Session()
-    existing_user = session.query(User).filter_by(username=username).first()
-
-    if existing_user is not None:
-        click.echo("Username already exists. Please log in or choose a different username.")
-        session.close()
+def set_budget():
+    """Set the budget for the authenticated user."""
+    if authenticated_user is None:
+        click.echo("Please login first.")
         return
 
-    new_user = User(username=username, password=password, email=email)
-    session.add(new_user)
+    click.echo("Set Budget:")
+    amount_str = click.prompt("Enter the budget amount: ")
+    amount = float(amount_str.replace(",", ""))
+
+    session = Session()
+    existing_budget = session.query(Budget).filter_by(user_id=authenticated_user.id).first()
+
+    if existing_budget:
+        existing_budget.amount = amount
+        click.echo("Budget updated successfully.")
+    else:
+        new_budget = Budget(user_id=authenticated_user.id, amount=amount)
+        session.add(new_budget)
+        click.echo("Budget set successfully.")
+
     session.commit()
     session.close()
 
-    click.echo("Registration successful.")
-    login()  # Redirect to the login functionality after successful registration
-
-@click.command()
-def login():
-    """Login functionality."""
-    username = click.prompt("Enter your username")
-    password = click.prompt("Enter your password")
-
-    session = Session()
-    user = session.query(User).filter_by(username=username).first()
-    session.close()
-
-    if user is None:
-        click.echo("User not found. Please register first.")
-        return
-
-    # Store the authenticated user's information in the session or as a global variable
-    global authenticated_user
-    authenticated_user = user
-
-    click.echo("Login successful.")
-    show_user_menu()  # Show the user menu directly after successful login
-
-
-# Rest of the code remains the same
-
-def print_menu():
-    print("Budget Tracker CLI")
-    print("-------------------")
-    print("1. Register")
-    print("2. Login")
-
-def print_user_menu():
-    print("1. Add a transaction")
-    print("2. View all transactions")
-    print("3. Delete a transaction")
-    print("4. Generate report")
-    print("5. Logout")
-    print("6. Exit")
-
-def show_user_menu():
-    clear_screen()
-
-    while True:
-        print_user_menu()
-        choice = click.prompt("Enter your choice (1-6): ")
-
-        if choice == "1":
-            add_transaction()
-        elif choice == "2":
-            view_transactions()
-        elif choice == "3":
-            delete_transaction()
-        elif choice == "4":
-            generate_report()
-        elif choice == "5":
-            logout()
-            break  # Exit the user menu and return to the main menu
-        elif choice == "6":
-            exit_program()
-        else:
-            click.echo("Invalid choice. Please try again.")
 
 def logout():
     """Logout the authenticated user."""
@@ -154,53 +245,13 @@ def logout():
     authenticated_user = None
     click.echo("Logged out successfully.")
 
+    main()
+
+
 def exit_program():
     """Exit the program."""
     click.echo("Exiting the program. Goodbye!")
     raise SystemExit
-
-def add_transaction():
-    if authenticated_user is None:
-        click.echo("Please login first.")
-        return
-
-    click.echo("Add a new transaction:")
-    transaction_type = click.prompt("Type (income/expense): ")
-    category = click.prompt("Category: ")
-    amount_str = click.prompt("Amount: ")
-    amount = float(amount_str.replace(",", ""))
-    date_str = click.prompt("Date (YYYY-MM-DD): ")
-    date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-
-    transaction = Transaction(transaction_type=transaction_type, category=category, amount=amount, date=date, user_id=authenticated_user.id)
-    session = Session()
-    session.add(transaction)
-    session.commit()
-    session.close()
-
-    click.echo("Transaction added successfully!")
-
-def view_transactions():
-    if authenticated_user is None:
-        click.echo("Please login first.")
-        return
-
-    click.echo("Viewing all transactions:")
-    session = Session()
-    transactions = session.query(Transaction).filter_by(user_id=authenticated_user.id).all()
-    session.close()
-
-    if not transactions:
-        click.echo("No transactions found.")
-        return
-
-    for transaction in transactions:
-        click.echo(f"ID: {transaction.id}")
-        click.echo(f"Type: {transaction.transaction_type}")
-        click.echo(f"Category: {transaction.category}")
-        click.echo(f"Amount: {transaction.amount}")
-        click.echo(f"Date: {transaction.date}")
-        click.echo("------------------------")
 
 
 def main():
@@ -220,6 +271,7 @@ def main():
             break  # Exit the main loop after successful login
         else:
             click.echo("Invalid choice. Please try again.")
+
 
 if __name__ == "__main__":
     main()
