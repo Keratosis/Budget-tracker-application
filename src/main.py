@@ -202,16 +202,6 @@ def view_transactions():
         click.echo(f"Date: {transaction.date}")
         click.echo("------------------------")
 
-def plot_transaction_amounts(transactions):
-    """Plot a bar chart of transaction amounts."""
-    categories = [transaction.category for transaction in transactions]
-    amounts = [transaction.amount for transaction in transactions]
-
-    plt.bar(categories, amounts)
-    plt.xlabel("Category")
-    plt.ylabel("Amount")
-    plt.title("Transaction Amounts")
-    plt.show()
 
 def main():
     clear_screen()
