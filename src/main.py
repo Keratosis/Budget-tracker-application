@@ -54,6 +54,7 @@ def login():
         return
 
     if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
+        
         click.echo(click.style("Incorrect password. Please try again.", fg="red"))
         session.close()
         main()
@@ -70,6 +71,7 @@ def login():
 #user and login interface
 
 def print_menu():
+    click.echo(click.style("-------------------", fg="yellow", bold=True))
     click.echo(click.style("Budget Tracker CLI", fg="yellow", bold=True))
     click.echo(click.style("-------------------", fg="yellow", bold=True))
     click.echo(click.style("1. Register", fg="cyan"))
@@ -82,6 +84,7 @@ def print_user_menu():
     total_expenses = session.query(func.sum(Transaction.amount)).filter_by(user_id=authenticated_user.id, transaction_type='expense').scalar() or 0
     balance = total_income - total_expenses
     session.close()
+    click.echo(click.style("-----------------------------", fg="yellow", bold=True))
     click.echo(click.style(f"Available Balance: {balance}", fg="green", bold=True))
     click.echo(click.style("-----------------------------", fg="yellow", bold=True))
     click.echo(click.style("1. Add a transaction", fg="bright_magenta"))
@@ -156,10 +159,12 @@ def view_transactions():
     if authenticated_user is None:
         click.echo(click.style("Please login first.", fg="red"))
         return
-
-    click.echo(click.style("Viewing all transactions:", fg="cyan"))
+    
+    
     click.echo(click.style("*********************", fg="yellow"))
     click.echo(click.style("Viewing all transactions:", fg="cyan"))
+    click.echo(click.style("*********************", fg="yellow"))
+    
     session = Session()
     transactions = session.query(Transaction).filter_by(user_id=authenticated_user.id).all()
     session.close()
@@ -245,11 +250,11 @@ def view_budget():
     budgets = session.query(Budget).filter_by(user_id=authenticated_user.id).all()
 
     if budgets:
-        click.echo(click.style("Budgets:", fg="cyan"))
+        click.echo(click.style("viewing all Budgets:", fg="cyan"))
         for budget in budgets:
             click.echo(click.style(f"ID: {budget.id}, Category: {budget.category}, Amount: {budget.amount}", fg="cyan"))
     else:
-        click.echo(click.style("No budgets found.", fg="cyan"))
+        click.echo(click.style("No budgets found. Please add one", fg="cyan"))
 
     session.close()
 
