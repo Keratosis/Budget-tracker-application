@@ -180,21 +180,34 @@ def view_transactions():
 
 def delete_transaction():
     """Delete a transaction from the database."""
-    if authenticated_user is None:
-        click.echo(click.style("Please login first.", fg="red"))
+    session = Session()
+    transactions = session.query(Transaction).filter_by(user_id=authenticated_user.id).all()
+
+    if not transactions:
+        click.echo(click.style("No transactions found.", fg="yellow"))
+        session.close()
+        show_user_menu()
         return
 
-    transaction_id = click.prompt(click.style("Enter the transaction ID", fg="cyan"))
-    session = Session()
-    transaction = session.query(Transaction).get(transaction_id)
-    if transaction:
-        session.delete(transaction)
-        session.commit()
-        click.echo(click.style("Transaction deleted successfully.", fg="green"))
-    else:
-        click.echo(click.style("Transaction not found.", fg="red"))
+    click.echo("Available transactions:")
+    for transaction in transactions:
+        click.echo(f"Transaction ID: {transaction.id} | Amount: {transaction.amount} | Category: {transaction.category}")
 
+    transaction_id = click.prompt(click.style("Enter the ID of the transaction you want to delete", fg="cyan"))
+
+    transaction = session.query(Transaction).filter_by(user_id=authenticated_user.id, id=transaction_id).first()
+    if transaction is None:
+        click.echo(click.style("Transaction not found.", fg="red"))
+        session.close()
+        show_user_menu()
+        return
+
+    session.delete(transaction)
+    session.commit()
     session.close()
+
+    click.echo(click.style("Transaction deleted successfully.", fg="green"))
+    show_user_menu()
 
 
 def set_budget():
